@@ -104,7 +104,7 @@ pub const Parser = struct {
             switch (token) {
                 .open_paren => {
                     const cell = try self.alloc.create(Cons);
-                    cell.* = Cons.init(try self.parseExpr(), Value.nil);
+                    cell.* = Cons.init(try self.parseExpr(), try self.parseExpr());
                     return Value.cons(cell);
                 },
                 .close_paren => return Value.nil,
