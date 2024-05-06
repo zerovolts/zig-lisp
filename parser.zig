@@ -1,5 +1,6 @@
 const std = @import("std");
 const mem = std.mem;
+const meta = std.meta;
 const debug = std.debug;
 
 const lexer = @import("lexer.zig");
@@ -35,6 +36,19 @@ pub const Value = union(enum) {
         };
     }
 
+    fn eql(a: Value, b: Value) bool {
+        const TagType = meta.Tag(Value);
+        if (@as(TagType, a) != @as(TagType, b)) return false;
+
+        switch (a) {
+            .nil => return true,
+            .ident => return meta.eql(a.ident.items, b.ident.items),
+            .string => return meta.eql(a.string.items, b.string.items),
+            .int => return a.int == b.int,
+            .cons => return Cons.eql(a.cons, b.cons),
+        }
+    }
+
     pub fn format(self: Value, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) anyerror!void {
         _ = fmt;
         _ = options;
@@ -68,6 +82,10 @@ pub const Cons = struct {
             }
         }
         cursor.next = value;
+    }
+
+    pub fn eql(a: *Cons, b: *Cons) bool {
+        return Value.eql(a.value, b.value) and Value.eql(a.next, b.next);
     }
 
     pub fn format(self: Cons, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) anyerror!void {
@@ -126,4 +144,51 @@ fn tokenToValue(token: lexer.Token) !Value {
         .int => |value| return Value.int(value),
         else => return error.UnsupportedTokenType,
     }
+}
+
+const testing = std.testing;
+const heap = std.heap;
+
+fn testParser(src: []const u8, expected: Value) !void {
+    // TODO: use testing.allocator
+    var arena = heap.ArenaAllocator.init(heap.page_allocator);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
+    var token_iter = lexer.TokenIterator{ .buffer = src, .alloc = alloc };
+    var parser = Parser{ .tokenIter = &token_iter, .alloc = alloc };
+    try testing.expect(Value.eql(try parser.next() orelse Value.nil, expected));
+}
+
+test "parse integer" {
+    try testParser("123", Value.int(123));
+}
+
+test "parse list" {
+    var cell3 = Cons.init(Value.int(3), Value.nil);
+    var cell2 = Cons.init(Value.int(2), Value.cons(&cell3));
+    var cell1 = Cons.init(Value.int(1), Value.cons(&cell2));
+    const expected = Value.cons(&cell1);
+
+    try testParser("(1 2 3)", expected);
+}
+
+test "parse nested list tail" {
+    var cell3 = Cons.init(Value.int(3), Value.nil);
+    var cell2 = Cons.init(Value.int(2), Value.cons(&cell3));
+    var cellNested = Cons.init(Value.cons(&cell2), Value.nil);
+    var cell1 = Cons.init(Value.int(1), Value.cons(&cellNested));
+    const expected = Value.cons(&cell1);
+
+    try testParser("(1 (2 3))", expected);
+}
+
+test "parse nested list head" {
+    var cell3 = Cons.init(Value.int(3), Value.nil);
+    var cell2 = Cons.init(Value.int(2), Value.nil);
+    var cell1 = Cons.init(Value.int(1), Value.cons(&cell2));
+    var cellNested = Cons.init(Value.cons(&cell1), Value.cons(&cell3));
+    const expected = Value.cons(&cellNested);
+
+    try testParser("((1 2) 3)", expected);
 }
