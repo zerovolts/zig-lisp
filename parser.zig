@@ -11,6 +11,7 @@ pub const Value = union(enum) {
     string: std.ArrayList(u8),
     int: i64,
     cons: *Cons,
+    builtin: *const fn (Value) error{RuntimeError}!Value,
 
     pub fn int(value: i64) Value {
         return .{
@@ -36,7 +37,7 @@ pub const Value = union(enum) {
         };
     }
 
-    fn eql(a: Value, b: Value) bool {
+    pub fn eql(a: Value, b: Value) bool {
         const TagType = meta.Tag(Value);
         if (@as(TagType, a) != @as(TagType, b)) return false;
 
@@ -46,6 +47,7 @@ pub const Value = union(enum) {
             .string => return meta.eql(a.string.items, b.string.items),
             .int => return a.int == b.int,
             .cons => return Cons.eql(a.cons, b.cons),
+            .builtin => return a.builtin == b.builtin,
         }
     }
 
@@ -57,6 +59,7 @@ pub const Value = union(enum) {
             .ident => try writer.print("Ident[{s}]", .{self.ident.items}),
             .string => try writer.print("String[\"{s}\"]", .{self.string.items}),
             .int => try writer.print("Int[{}]", .{self.int}),
+            .builtin => try writer.print("<builtin>", .{}),
             .cons => try writer.print("({})", .{self.cons}),
         }
     }
@@ -76,7 +79,7 @@ pub const Cons = struct {
     pub fn pushBack(self: *Cons, value: Value) void {
         var cursor = self;
         while (true) {
-            switch (self.next) {
+            switch (cursor.next) {
                 .cons => cursor = self.next.cons,
                 else => break,
             }
