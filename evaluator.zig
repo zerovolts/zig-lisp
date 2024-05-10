@@ -18,11 +18,11 @@ pub const Runtime = struct {
                 if (mem.eql(u8, ident.items, "+")) {
                     return Value{ .builtin = &builtin_add };
                 }
-                if (mem.eql(u8, ident.items, "first")) {
-                    return Value{ .builtin = &builtin_first };
+                if (mem.eql(u8, ident.items, "head")) {
+                    return Value{ .builtin = &builtin_head };
                 }
-                if (mem.eql(u8, ident.items, "rest")) {
-                    return Value{ .builtin = &builtin_rest };
+                if (mem.eql(u8, ident.items, "tail")) {
+                    return Value{ .builtin = &builtin_tail };
                 }
                 if (mem.eql(u8, ident.items, "list")) {
                     return Value{ .builtin = &builtin_list };
@@ -65,7 +65,7 @@ pub const Runtime = struct {
     }
 };
 
-fn builtin_first(args: Value) !Value {
+fn builtin_head(args: Value) !Value {
     switch (args) {
         .cons => |cons| {
             switch (cons.value) {
@@ -77,7 +77,7 @@ fn builtin_first(args: Value) !Value {
     }
 }
 
-fn builtin_rest(args: Value) !Value {
+fn builtin_tail(args: Value) !Value {
     switch (args) {
         .cons => |cons| {
             switch (cons.value) {
@@ -126,8 +126,8 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
     try testing.expect(Value.eql(try runtime.evaluate(try expr_iter.next() orelse Value.nil), expected));
 }
 
-test "evaluate first/rest" {
-    try testEvaluator("(first (rest (list 1 2 3)))", Value.int(2));
+test "evaluate head/tail" {
+    try testEvaluator("(head (tail (list 1 2 3)))", Value.int(2));
 }
 
 test "evaluate add" {
