@@ -80,7 +80,7 @@ pub const Cons = struct {
         var cursor = self;
         while (true) {
             switch (cursor.next) {
-                .cons => cursor = self.next.cons,
+                .cons => cursor = cursor.next.cons,
                 else => break,
             }
         }

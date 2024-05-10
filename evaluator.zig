@@ -24,6 +24,9 @@ pub const Runtime = struct {
                 if (mem.eql(u8, ident.items, "rest")) {
                     return Value{ .builtin = &builtin_rest };
                 }
+                if (mem.eql(u8, ident.items, "list")) {
+                    return Value{ .builtin = &builtin_list };
+                }
                 return Value.nil;
             },
             .cons => |cons| {
@@ -62,20 +65,32 @@ pub const Runtime = struct {
     }
 };
 
-// TODO: should operate on a list, not directly on the function arguments
 fn builtin_first(args: Value) !Value {
     switch (args) {
-        .cons => |cons| return cons.value,
+        .cons => |cons| {
+            switch (cons.value) {
+                .cons => |v| return v.value,
+                else => return error.RuntimeError,
+            }
+        },
         else => return error.RuntimeError,
     }
 }
 
-// TODO: should operate on a list, not directly on the function arguments
 fn builtin_rest(args: Value) !Value {
     switch (args) {
-        .cons => |cons| return cons.next,
+        .cons => |cons| {
+            switch (cons.value) {
+                .cons => |v| return v.next,
+                else => return error.RuntimeError,
+            }
+        },
         else => return error.RuntimeError,
     }
+}
+
+fn builtin_list(args: Value) !Value {
+    return args;
 }
 
 fn builtin_add(args: Value) !Value {
@@ -111,14 +126,10 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
     try testing.expect(Value.eql(try runtime.evaluate(try expr_iter.next() orelse Value.nil), expected));
 }
 
-test "evaluate first" {
-    try testEvaluator("(first 1 2 3)", Value.int(1));
+test "evaluate first/rest" {
+    try testEvaluator("(first (rest (list 1 2 3)))", Value.int(2));
 }
 
 test "evaluate add" {
     try testEvaluator("(+ 1 2 3)", Value.int(6));
-}
-
-test "evaluate nested" {
-    try testEvaluator("(+ 1 (first 2 100) 3)", Value.int(6));
 }
