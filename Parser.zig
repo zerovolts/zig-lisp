@@ -6,47 +6,47 @@ const ast = @import("ast.zig");
 const Value = ast.Value;
 const Cons = ast.Cons;
 
-pub const Parser = struct {
-    tokenIter: *lexer.TokenIterator,
-    alloc: mem.Allocator,
+const Parser = @This();
 
-    pub fn next(self: Parser) !?Value {
-        if (try self.tokenIter.next()) |token| {
-            switch (token) {
-                // Outermost parens don't have any effect on the output.
-                .open_paren => {
-                    const res = try self.parseExpr();
-                    // Eat the matching closing paren.
-                    _ = try self.tokenIter.next();
-                    return res;
-                },
-                .int, .ident, .str => return try tokenToValue(token),
-                else => return error.InvalidToken,
-            }
-        } else {
-            return null;
+tokenIter: *lexer.TokenIterator,
+alloc: mem.Allocator,
+
+pub fn next(self: Parser) !?Value {
+    if (try self.tokenIter.next()) |token| {
+        switch (token) {
+            // Outermost parens don't have any effect on the output.
+            .open_paren => {
+                const res = try self.parseExpr();
+                // Eat the matching closing paren.
+                _ = try self.tokenIter.next();
+                return res;
+            },
+            .int, .ident, .str => return try tokenToValue(token),
+            else => return error.InvalidToken,
+        }
+    } else {
+        return null;
+    }
+}
+
+fn parseExpr(self: Parser) !Value {
+    while (try self.tokenIter.next()) |token| {
+        switch (token) {
+            .open_paren => {
+                const cell = try self.alloc.create(Cons);
+                cell.* = Cons.init(try self.parseExpr(), try self.parseExpr());
+                return Value{ .cons = cell };
+            },
+            .close_paren => return Value.nil,
+            .int, .ident, .str => {
+                const cell = try self.alloc.create(Cons);
+                cell.* = Cons.init(try tokenToValue(token), try self.parseExpr());
+                return Value{ .cons = cell };
+            },
         }
     }
-
-    fn parseExpr(self: Parser) !Value {
-        while (try self.tokenIter.next()) |token| {
-            switch (token) {
-                .open_paren => {
-                    const cell = try self.alloc.create(Cons);
-                    cell.* = Cons.init(try self.parseExpr(), try self.parseExpr());
-                    return Value{ .cons = cell };
-                },
-                .close_paren => return Value.nil,
-                .int, .ident, .str => {
-                    const cell = try self.alloc.create(Cons);
-                    cell.* = Cons.init(try tokenToValue(token), try self.parseExpr());
-                    return Value{ .cons = cell };
-                },
-            }
-        }
-        return error.NoMoreTokens;
-    }
-};
+    return error.NoMoreTokens;
+}
 
 fn tokenToValue(token: lexer.Token) !Value {
     switch (token) {

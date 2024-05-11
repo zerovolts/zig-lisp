@@ -3,7 +3,7 @@ const heap = std.heap;
 const debug = std.debug;
 
 const lexer = @import("lexer.zig");
-const parser = @import("parser.zig");
+const Parser = @import("Parser.zig");
 const evaluator = @import("evaluator.zig");
 const ast = @import("ast.zig");
 const Cons = ast.Cons;
@@ -17,9 +17,9 @@ pub fn main() !void {
         .buffer = "(+ 3 4 5)",
         .alloc = gpa_alloc,
     };
-    var p = parser.Parser{ .tokenIter = &tokenIter, .alloc = gpa_alloc };
+    var parser = Parser{ .tokenIter = &tokenIter, .alloc = gpa_alloc };
     var r = evaluator.Runtime{ .alloc = gpa_alloc };
-    while (try p.next()) |value| {
+    while (try parser.next()) |value| {
         debug.print("{!}\n", .{r.evaluate(value)});
         // debug.print("{}", .{value});
     }
