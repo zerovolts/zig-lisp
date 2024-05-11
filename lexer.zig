@@ -24,12 +24,12 @@ pub const Token = union(enum) {
     }
 };
 
-pub const TokenIterator = struct {
+pub const Lexer = struct {
     buffer: []const u8,
     index: usize = 0,
     alloc: mem.Allocator,
 
-    pub fn next(self: *TokenIterator) !?Token {
+    pub fn next(self: *Lexer) !?Token {
         while (self.index < self.buffer.len) : (self.index += 1) {
             const ch = self.currentChar();
             switch (ch) {
@@ -83,7 +83,7 @@ pub const TokenIterator = struct {
         return null;
     }
 
-    fn currentChar(self: TokenIterator) u8 {
+    fn currentChar(self: Lexer) u8 {
         return self.buffer[self.index];
     }
 };
@@ -124,9 +124,9 @@ fn isIdent(c: u8) bool {
 }
 
 fn testLexer(src: []const u8, expected_tokens: []const Token) !void {
-    var token_iter = TokenIterator{ .buffer = src, .alloc = testing.allocator };
+    var lexer = Lexer{ .buffer = src, .alloc = testing.allocator };
     var i: usize = 0;
-    while (try token_iter.next()) |next| : (i += 1) {
+    while (try lexer.next()) |next| : (i += 1) {
         try testing.expect(meta.eql(next, expected_tokens[i]));
     }
 }

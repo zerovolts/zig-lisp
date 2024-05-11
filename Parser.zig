@@ -1,24 +1,24 @@
 const std = @import("std");
 const mem = std.mem;
 
-const lexer = @import("lexer.zig");
+const lex = @import("lexer.zig");
 const ast = @import("ast.zig");
 const Value = ast.Value;
 const Cons = ast.Cons;
 
 const Parser = @This();
 
-tokenIter: *lexer.TokenIterator,
+lexer: *lex.Lexer,
 alloc: mem.Allocator,
 
 pub fn next(self: Parser) !?Value {
-    if (try self.tokenIter.next()) |token| {
+    if (try self.lexer.next()) |token| {
         switch (token) {
             // Outermost parens don't have any effect on the output.
             .open_paren => {
                 const res = try self.parseExpr();
                 // Eat the matching closing paren.
-                _ = try self.tokenIter.next();
+                _ = try self.lexer.next();
                 return res;
             },
             .int, .ident, .str => return try tokenToValue(token),
@@ -30,7 +30,7 @@ pub fn next(self: Parser) !?Value {
 }
 
 fn parseExpr(self: Parser) !Value {
-    while (try self.tokenIter.next()) |token| {
+    while (try self.lexer.next()) |token| {
         switch (token) {
             .open_paren => {
                 const cell = try self.alloc.create(Cons);
@@ -48,7 +48,7 @@ fn parseExpr(self: Parser) !Value {
     return error.NoMoreTokens;
 }
 
-fn tokenToValue(token: lexer.Token) !Value {
+fn tokenToValue(token: lex.Token) !Value {
     switch (token) {
         .ident => |value| return Value{ .ident = value },
         .str => |value| return Value{ .string = value },
@@ -66,8 +66,8 @@ fn testParser(src: []const u8, expected: Value) !void {
     defer arena.deinit();
     const alloc = arena.allocator();
 
-    var token_iter = lexer.TokenIterator{ .buffer = src, .alloc = alloc };
-    var parser = Parser{ .tokenIter = &token_iter, .alloc = alloc };
+    var lexer = lex.Lexer{ .buffer = src, .alloc = alloc };
+    var parser = Parser{ .lexer = &lexer, .alloc = alloc };
     try testing.expect(Value.eql(try parser.next() orelse Value.nil, expected));
 }
 
