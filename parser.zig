@@ -14,27 +14,19 @@ pub const Value = union(enum) {
     builtin: *const fn (Value) error{RuntimeError}!Value,
 
     pub fn int(value: i64) Value {
-        return .{
-            .int = value,
-        };
+        return .{ .int = value };
     }
 
     pub fn ident(value: std.ArrayList(u8)) Value {
-        return .{
-            .ident = value,
-        };
+        return .{ .ident = value };
     }
 
     pub fn string(value: std.ArrayList(u8)) Value {
-        return .{
-            .string = value,
-        };
+        return .{ .string = value };
     }
 
     pub fn cons(value: *Cons) Value {
-        return .{
-            .cons = value,
-        };
+        return .{ .cons = value };
     }
 
     pub fn eql(a: Value, b: Value) bool {
@@ -70,10 +62,7 @@ pub const Cons = struct {
     tail: Value,
 
     pub fn init(head: Value, tail: Value) Cons {
-        return .{
-            .head = head,
-            .tail = tail,
-        };
+        return .{ .head = head, .tail = tail };
     }
 
     pub fn pushBack(self: *Cons, value: Value) void {
