@@ -66,35 +66,35 @@ pub const Value = union(enum) {
 };
 
 pub const Cons = struct {
-    value: Value,
-    next: Value,
+    head: Value,
+    tail: Value,
 
-    pub fn init(value: Value, next: Value) Cons {
+    pub fn init(head: Value, tail: Value) Cons {
         return .{
-            .value = value,
-            .next = next,
+            .head = head,
+            .tail = tail,
         };
     }
 
     pub fn pushBack(self: *Cons, value: Value) void {
         var cursor = self;
         while (true) {
-            switch (cursor.next) {
-                .cons => cursor = cursor.next.cons,
+            switch (cursor.tail) {
+                .cons => cursor = cursor.tail.cons,
                 else => break,
             }
         }
-        cursor.next = value;
+        cursor.tail = value;
     }
 
     pub fn eql(a: *Cons, b: *Cons) bool {
-        return Value.eql(a.value, b.value) and Value.eql(a.next, b.next);
+        return Value.eql(a.head, b.head) and Value.eql(a.tail, b.tail);
     }
 
     pub fn format(self: Cons, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) anyerror!void {
         _ = fmt;
         _ = options;
-        try writer.print("{} . {}", .{ self.value, self.next });
+        try writer.print("{} . {}", .{ self.head, self.tail });
     }
 };
 

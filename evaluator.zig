@@ -30,15 +30,15 @@ pub const Runtime = struct {
                 return Value.nil;
             },
             .cons => |cons| {
-                const op = try self.evaluate(cons.value);
+                const op = try self.evaluate(cons.head);
                 var args: Value = Value.nil;
 
                 var cur = cons;
                 while (true) {
-                    if (cur.next == .nil) break;
-                    if (cur.next != .cons) return error.MustBeAList;
+                    if (cur.tail == .nil) break;
+                    if (cur.tail != .cons) return error.MustBeAList;
 
-                    const res = try self.evaluate(cur.next.cons.value);
+                    const res = try self.evaluate(cur.tail.cons.head);
                     const cell = try self.alloc.create(Cons);
                     cell.* = Cons.init(res, Value.nil);
                     switch (args) {
@@ -51,7 +51,7 @@ pub const Runtime = struct {
                         },
                         else => return error.ArgsMustBeAList,
                     }
-                    cur = cur.next.cons;
+                    cur = cur.tail.cons;
                 }
                 if (op != .builtin) return error.FirstElementMustBeAFunction;
                 return op.builtin(args);
@@ -62,14 +62,14 @@ pub const Runtime = struct {
 
 fn builtin_head(args: Value) !Value {
     if (args != .cons) return error.RuntimeError;
-    if (args.cons.value != .cons) return error.RuntimeError;
-    return args.cons.value.cons.value;
+    if (args.cons.head != .cons) return error.RuntimeError;
+    return args.cons.head.cons.head;
 }
 
 fn builtin_tail(args: Value) !Value {
     if (args != .cons) return error.RuntimeError;
-    if (args.cons.value != .cons) return error.RuntimeError;
-    return args.cons.value.cons.next;
+    if (args.cons.head != .cons) return error.RuntimeError;
+    return args.cons.head.cons.tail;
 }
 
 fn builtin_list(args: Value) !Value {
@@ -82,10 +82,10 @@ fn builtin_add(args: Value) !Value {
     while (true) {
         if (arg == .nil) break;
         if (arg != .cons) return error.RuntimeError;
-        if (arg.cons.value != .int) return error.RuntimeError;
+        if (arg.cons.head != .int) return error.RuntimeError;
 
-        total += arg.cons.value.int;
-        arg = arg.cons.next;
+        total += arg.cons.head.int;
+        arg = arg.cons.tail;
     }
     return Value.int(total);
 }
