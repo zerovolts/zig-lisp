@@ -8,11 +8,12 @@ const parser = @import("parser.zig");
 const ast = @import("ast.zig");
 const Value = ast.Value;
 const Cons = ast.Cons;
+const RuntimeError = ast.RuntimeError;
 
 pub const Runtime = struct {
     alloc: mem.Allocator,
 
-    pub fn evaluate(self: Runtime, value: Value) !Value {
+    pub fn evaluate(self: Runtime, value: Value) RuntimeError!Value {
         switch (value) {
             .string, .int, .nil, .builtin => return value,
             .ident => |ident| {
@@ -37,7 +38,7 @@ pub const Runtime = struct {
                 var cur = cons;
                 while (true) {
                     if (cur.tail == .nil) break;
-                    if (cur.tail != .cons) return error.MustBeAList;
+                    if (cur.tail != .cons) return RuntimeError.ListExpected;
 
                     const res = try self.evaluate(cur.tail.cons.head);
                     const cell = try self.alloc.create(Cons);
@@ -50,40 +51,40 @@ pub const Runtime = struct {
                             // TODO: keep a reference to the last element instead
                             c.pushBack(Value{ .cons = cell });
                         },
-                        else => return error.ArgsMustBeAList,
+                        else => return RuntimeError.ListExpected,
                     }
                     cur = cur.tail.cons;
                 }
-                if (op != .builtin) return error.FirstElementMustBeAFunction;
+                if (op != .builtin) return RuntimeError.FunctionExpected;
                 return op.builtin(args);
             },
         }
     }
 };
 
-fn builtin_head(args: Value) !Value {
-    if (args != .cons) return error.RuntimeError;
-    if (args.cons.head != .cons) return error.RuntimeError;
+fn builtin_head(args: Value) RuntimeError!Value {
+    if (args != .cons) return RuntimeError.ListExpected;
+    if (args.cons.head != .cons) return RuntimeError.ListExpected;
     return args.cons.head.cons.head;
 }
 
-fn builtin_tail(args: Value) !Value {
-    if (args != .cons) return error.RuntimeError;
-    if (args.cons.head != .cons) return error.RuntimeError;
+fn builtin_tail(args: Value) RuntimeError!Value {
+    if (args != .cons) return RuntimeError.ListExpected;
+    if (args.cons.head != .cons) return RuntimeError.ListExpected;
     return args.cons.head.cons.tail;
 }
 
-fn builtin_list(args: Value) !Value {
+fn builtin_list(args: Value) RuntimeError!Value {
     return args;
 }
 
-fn builtin_add(args: Value) !Value {
+fn builtin_add(args: Value) RuntimeError!Value {
     var arg = args;
     var total: i64 = 0;
     while (true) {
         if (arg == .nil) break;
-        if (arg != .cons) return error.RuntimeError;
-        if (arg.cons.head != .int) return error.RuntimeError;
+        if (arg != .cons) return RuntimeError.ListExpected;
+        if (arg.cons.head != .int) return RuntimeError.IntegerExpected;
 
         total += arg.cons.head.int;
         arg = arg.cons.tail;

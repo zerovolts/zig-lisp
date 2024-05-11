@@ -1,13 +1,20 @@
 const std = @import("std");
 const meta = std.meta;
 
+pub const RuntimeError = error{
+    OutOfMemory,
+    ListExpected,
+    IntegerExpected,
+    FunctionExpected,
+};
+
 pub const Value = union(enum) {
     nil,
     ident: std.ArrayList(u8),
     string: std.ArrayList(u8),
     int: i64,
     cons: *Cons,
-    builtin: *const fn (Value) error{RuntimeError}!Value,
+    builtin: *const fn (Value) RuntimeError!Value,
 
     pub fn eql(a: Value, b: Value) bool {
         const TagType = meta.Tag(Value);
