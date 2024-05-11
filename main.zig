@@ -2,7 +2,7 @@ const std = @import("std");
 const heap = std.heap;
 const debug = std.debug;
 
-const lex = @import("lexer.zig");
+const Lexer = @import("Lexer.zig");
 const Parser = @import("Parser.zig");
 const evaluator = @import("evaluator.zig");
 const ast = @import("ast.zig");
@@ -13,7 +13,7 @@ pub fn main() !void {
     var gpa = heap.GeneralPurposeAllocator(.{}){};
     const gpa_alloc = gpa.allocator();
 
-    var lexer = lex.Lexer{
+    var lexer = Lexer{
         .buffer = "(+ 3 4 5)",
         .alloc = gpa_alloc,
     };

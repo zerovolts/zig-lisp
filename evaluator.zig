@@ -3,7 +3,7 @@ const mem = std.mem;
 const heap = std.heap;
 const testing = std.testing;
 
-const lex = @import("lexer.zig");
+const Lexer = @import("Lexer.zig");
 const Parser = @import("Parser.zig");
 const ast = @import("ast.zig");
 const Value = ast.Value;
@@ -98,7 +98,7 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
     defer arena.deinit();
     const alloc = arena.allocator();
 
-    var lexer = lex.Lexer{ .buffer = src, .alloc = alloc };
+    var lexer = Lexer{ .buffer = src, .alloc = alloc };
     var expr_iter = Parser{ .lexer = &lexer, .alloc = alloc };
     var runtime = Runtime{ .alloc = alloc };
     try testing.expect(Value.eql(try runtime.evaluate(try expr_iter.next() orelse Value.nil), expected));
