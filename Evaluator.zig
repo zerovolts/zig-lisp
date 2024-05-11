@@ -9,6 +9,7 @@ const ast = @import("ast.zig");
 const Value = ast.Value;
 const Cons = ast.Cons;
 const RuntimeError = ast.RuntimeError;
+const builtin = @import("builtin.zig");
 
 const Evaluator = @This();
 
@@ -19,16 +20,16 @@ pub fn evaluate(self: Evaluator, value: Value) RuntimeError!Value {
         .string, .int, .nil, .builtin => return value,
         .ident => |ident| {
             if (mem.eql(u8, ident.items, "+")) {
-                return Value{ .builtin = &builtin_add };
+                return Value{ .builtin = &builtin.add };
             }
             if (mem.eql(u8, ident.items, "head")) {
-                return Value{ .builtin = &builtin_head };
+                return Value{ .builtin = &builtin.head };
             }
             if (mem.eql(u8, ident.items, "tail")) {
-                return Value{ .builtin = &builtin_tail };
+                return Value{ .builtin = &builtin.tail };
             }
             if (mem.eql(u8, ident.items, "list")) {
-                return Value{ .builtin = &builtin_list };
+                return Value{ .builtin = &builtin.list };
             }
             return Value.nil;
         },
@@ -60,36 +61,6 @@ pub fn evaluate(self: Evaluator, value: Value) RuntimeError!Value {
             return op.builtin(args);
         },
     }
-}
-
-fn builtin_head(args: Value) RuntimeError!Value {
-    if (args != .cons) return RuntimeError.ListExpected;
-    if (args.cons.head != .cons) return RuntimeError.ListExpected;
-    return args.cons.head.cons.head;
-}
-
-fn builtin_tail(args: Value) RuntimeError!Value {
-    if (args != .cons) return RuntimeError.ListExpected;
-    if (args.cons.head != .cons) return RuntimeError.ListExpected;
-    return args.cons.head.cons.tail;
-}
-
-fn builtin_list(args: Value) RuntimeError!Value {
-    return args;
-}
-
-fn builtin_add(args: Value) RuntimeError!Value {
-    var arg = args;
-    var total: i64 = 0;
-    while (true) {
-        if (arg == .nil) break;
-        if (arg != .cons) return RuntimeError.ListExpected;
-        if (arg.cons.head != .int) return RuntimeError.IntegerExpected;
-
-        total += arg.cons.head.int;
-        arg = arg.cons.tail;
-    }
-    return Value{ .int = total };
 }
 
 fn testEvaluator(src: []const u8, expected: Value) !void {
