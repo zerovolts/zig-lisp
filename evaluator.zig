@@ -35,58 +35,41 @@ pub const Runtime = struct {
 
                 var cur = cons;
                 while (true) {
-                    switch (cur.next) {
-                        .cons => |next| {
-                            const res = try self.evaluate(next.value);
-                            const cell = try self.alloc.create(Cons);
-                            cell.* = Cons.init(res, Value.nil);
-                            switch (args) {
-                                .nil => {
-                                    args = Value{ .cons = cell };
-                                },
-                                .cons => |c| {
-                                    // TODO: keep a reference to the last element instead
-                                    c.pushBack(Value{ .cons = cell });
-                                },
-                                else => return error.ArgsMustBeAList,
-                            }
-                            cur = next;
+                    if (cur.next == .nil) break;
+                    if (cur.next != .cons) return error.MustBeAList;
+
+                    const res = try self.evaluate(cur.next.cons.value);
+                    const cell = try self.alloc.create(Cons);
+                    cell.* = Cons.init(res, Value.nil);
+                    switch (args) {
+                        .nil => {
+                            args = Value{ .cons = cell };
                         },
-                        .nil => break,
-                        else => return error.MustBeAList,
+                        .cons => |c| {
+                            // TODO: keep a reference to the last element instead
+                            c.pushBack(Value{ .cons = cell });
+                        },
+                        else => return error.ArgsMustBeAList,
                     }
+                    cur = cur.next.cons;
                 }
-                switch (op) {
-                    .builtin => |builtin| return builtin(args),
-                    else => return error.FirstElementMustBeAFunction,
-                }
+                if (op != .builtin) return error.FirstElementMustBeAFunction;
+                return op.builtin(args);
             },
         }
     }
 };
 
 fn builtin_head(args: Value) !Value {
-    switch (args) {
-        .cons => |cons| {
-            switch (cons.value) {
-                .cons => |v| return v.value,
-                else => return error.RuntimeError,
-            }
-        },
-        else => return error.RuntimeError,
-    }
+    if (args != .cons) return error.RuntimeError;
+    if (args.cons.value != .cons) return error.RuntimeError;
+    return args.cons.value.cons.value;
 }
 
 fn builtin_tail(args: Value) !Value {
-    switch (args) {
-        .cons => |cons| {
-            switch (cons.value) {
-                .cons => |v| return v.next,
-                else => return error.RuntimeError,
-            }
-        },
-        else => return error.RuntimeError,
-    }
+    if (args != .cons) return error.RuntimeError;
+    if (args.cons.value != .cons) return error.RuntimeError;
+    return args.cons.value.cons.next;
 }
 
 fn builtin_list(args: Value) !Value {
@@ -97,19 +80,12 @@ fn builtin_add(args: Value) !Value {
     var arg = args;
     var total: i64 = 0;
     while (true) {
-        switch (arg) {
-            .cons => |cons| {
-                switch (cons.value) {
-                    .int => |i| {
-                        total += i;
-                    },
-                    else => return error.RuntimeError,
-                }
-                arg = cons.next;
-            },
-            .nil => break,
-            else => return error.RuntimeError,
-        }
+        if (arg == .nil) break;
+        if (arg != .cons) return error.RuntimeError;
+        if (arg.cons.value != .int) return error.RuntimeError;
+
+        total += arg.cons.value.int;
+        arg = arg.cons.next;
     }
     return Value.int(total);
 }
