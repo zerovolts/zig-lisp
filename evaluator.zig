@@ -5,8 +5,9 @@ const testing = std.testing;
 
 const lexer = @import("lexer.zig");
 const parser = @import("parser.zig");
-const Cons = parser.Cons;
-const Value = parser.Value;
+const ast = @import("ast.zig");
+const Value = ast.Value;
+const Cons = ast.Cons;
 
 pub const Runtime = struct {
     alloc: mem.Allocator,

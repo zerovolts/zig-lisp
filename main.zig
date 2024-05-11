@@ -5,8 +5,9 @@ const debug = std.debug;
 const lexer = @import("lexer.zig");
 const parser = @import("parser.zig");
 const evaluator = @import("evaluator.zig");
-const Cons = parser.Cons;
-const Value = parser.Value;
+const ast = @import("ast.zig");
+const Cons = ast.Cons;
+const Value = ast.Value;
 
 pub fn main() !void {
     var gpa = heap.GeneralPurposeAllocator(.{}){};
