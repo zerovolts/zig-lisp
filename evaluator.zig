@@ -87,7 +87,7 @@ fn builtin_add(args: Value) !Value {
         total += arg.cons.head.int;
         arg = arg.cons.tail;
     }
-    return Value.int(total);
+    return Value{ .int = total };
 }
 
 fn testEvaluator(src: []const u8, expected: Value) !void {
@@ -103,9 +103,9 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
 }
 
 test "evaluate head/tail" {
-    try testEvaluator("(head (tail (list 1 2 3)))", Value.int(2));
+    try testEvaluator("(head (tail (list 1 2 3)))", Value{ .int = 2 });
 }
 
 test "evaluate add" {
-    try testEvaluator("(+ 1 2 3)", Value.int(6));
+    try testEvaluator("(+ 1 2 3)", Value{ .int = 6 });
 }

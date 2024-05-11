@@ -13,22 +13,6 @@ pub const Value = union(enum) {
     cons: *Cons,
     builtin: *const fn (Value) error{RuntimeError}!Value,
 
-    pub fn int(value: i64) Value {
-        return .{ .int = value };
-    }
-
-    pub fn ident(value: std.ArrayList(u8)) Value {
-        return .{ .ident = value };
-    }
-
-    pub fn string(value: std.ArrayList(u8)) Value {
-        return .{ .string = value };
-    }
-
-    pub fn cons(value: *Cons) Value {
-        return .{ .cons = value };
-    }
-
     pub fn eql(a: Value, b: Value) bool {
         const TagType = meta.Tag(Value);
         if (@as(TagType, a) != @as(TagType, b)) return false;
@@ -115,13 +99,13 @@ pub const Parser = struct {
                 .open_paren => {
                     const cell = try self.alloc.create(Cons);
                     cell.* = Cons.init(try self.parseExpr(), try self.parseExpr());
-                    return Value.cons(cell);
+                    return Value{ .cons = cell };
                 },
                 .close_paren => return Value.nil,
                 .int, .ident, .str => {
                     const cell = try self.alloc.create(Cons);
                     cell.* = Cons.init(try tokenToValue(token), try self.parseExpr());
-                    return Value.cons(cell);
+                    return Value{ .cons = cell };
                 },
             }
         }
@@ -131,9 +115,9 @@ pub const Parser = struct {
 
 fn tokenToValue(token: lexer.Token) !Value {
     switch (token) {
-        .ident => |value| return Value.ident(value),
-        .str => |value| return Value.string(value),
-        .int => |value| return Value.int(value),
+        .ident => |value| return Value{ .ident = value },
+        .str => |value| return Value{ .string = value },
+        .int => |value| return Value{ .int = value },
         else => return error.UnsupportedTokenType,
     }
 }
@@ -153,34 +137,34 @@ fn testParser(src: []const u8, expected: Value) !void {
 }
 
 test "parse integer" {
-    try testParser("123", Value.int(123));
+    try testParser("123", Value{ .int = 123 });
 }
 
 test "parse list" {
-    var cell3 = Cons.init(Value.int(3), Value.nil);
-    var cell2 = Cons.init(Value.int(2), Value.cons(&cell3));
-    var cell1 = Cons.init(Value.int(1), Value.cons(&cell2));
-    const expected = Value.cons(&cell1);
+    var cell3 = Cons.init(Value{ .int = 3 }, Value.nil);
+    var cell2 = Cons.init(Value{ .int = 2 }, Value{ .cons = &cell3 });
+    var cell1 = Cons.init(Value{ .int = 1 }, Value{ .cons = &cell2 });
+    const expected = Value{ .cons = &cell1 };
 
     try testParser("(1 2 3)", expected);
 }
 
 test "parse nested list tail" {
-    var cell3 = Cons.init(Value.int(3), Value.nil);
-    var cell2 = Cons.init(Value.int(2), Value.cons(&cell3));
-    var cellNested = Cons.init(Value.cons(&cell2), Value.nil);
-    var cell1 = Cons.init(Value.int(1), Value.cons(&cellNested));
-    const expected = Value.cons(&cell1);
+    var cell3 = Cons.init(Value{ .int = 3 }, Value.nil);
+    var cell2 = Cons.init(Value{ .int = 2 }, Value{ .cons = &cell3 });
+    var cellNested = Cons.init(Value{ .cons = &cell2 }, Value.nil);
+    var cell1 = Cons.init(Value{ .int = 1 }, Value{ .cons = &cellNested });
+    const expected = Value{ .cons = &cell1 };
 
     try testParser("(1 (2 3))", expected);
 }
 
 test "parse nested list head" {
-    var cell3 = Cons.init(Value.int(3), Value.nil);
-    var cell2 = Cons.init(Value.int(2), Value.nil);
-    var cell1 = Cons.init(Value.int(1), Value.cons(&cell2));
-    var cellNested = Cons.init(Value.cons(&cell1), Value.cons(&cell3));
-    const expected = Value.cons(&cellNested);
+    var cell3 = Cons.init(Value{ .int = 3 }, Value.nil);
+    var cell2 = Cons.init(Value{ .int = 2 }, Value.nil);
+    var cell1 = Cons.init(Value{ .int = 1 }, Value{ .cons = &cell2 });
+    var cellNested = Cons.init(Value{ .cons = &cell1 }, Value{ .cons = &cell3 });
+    const expected = Value{ .cons = &cellNested };
 
     try testParser("((1 2) 3)", expected);
 }
