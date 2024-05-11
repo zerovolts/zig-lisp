@@ -10,10 +10,10 @@ const Value = ast.Value;
 const Cons = ast.Cons;
 const RuntimeError = ast.RuntimeError;
 
-pub const Runtime = struct {
+pub const Evaluator = struct {
     alloc: mem.Allocator,
 
-    pub fn evaluate(self: Runtime, value: Value) RuntimeError!Value {
+    pub fn evaluate(self: Evaluator, value: Value) RuntimeError!Value {
         switch (value) {
             .string, .int, .nil, .builtin => return value,
             .ident => |ident| {
@@ -100,8 +100,8 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
 
     var lexer = Lexer{ .buffer = src, .alloc = alloc };
     var expr_iter = Parser{ .lexer = &lexer, .alloc = alloc };
-    var runtime = Runtime{ .alloc = alloc };
-    try testing.expect(Value.eql(try runtime.evaluate(try expr_iter.next() orelse Value.nil), expected));
+    var evaluator = Evaluator{ .alloc = alloc };
+    try testing.expect(Value.eql(try evaluator.evaluate(try expr_iter.next() orelse Value.nil), expected));
 }
 
 test "evaluate head/tail" {

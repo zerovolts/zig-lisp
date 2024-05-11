@@ -4,7 +4,7 @@ const debug = std.debug;
 
 const Lexer = @import("Lexer.zig");
 const Parser = @import("Parser.zig");
-const evaluator = @import("evaluator.zig");
+const eval = @import("evaluator.zig");
 const ast = @import("ast.zig");
 const Cons = ast.Cons;
 const Value = ast.Value;
@@ -18,9 +18,9 @@ pub fn main() !void {
         .alloc = gpa_alloc,
     };
     var parser = Parser{ .lexer = &lexer, .alloc = gpa_alloc };
-    var r = evaluator.Runtime{ .alloc = gpa_alloc };
+    var evaluator = eval.Evaluator{ .alloc = gpa_alloc };
     while (try parser.next()) |value| {
-        debug.print("{!}\n", .{r.evaluate(value)});
+        debug.print("{!}\n", .{evaluator.evaluate(value)});
         // debug.print("{}", .{value});
     }
 }
