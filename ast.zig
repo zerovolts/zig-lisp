@@ -1,6 +1,8 @@
 const std = @import("std");
 const meta = std.meta;
 
+const Evaluator = @import("Evaluator.zig");
+
 pub const RuntimeError = error{
     OutOfMemory,
     ListExpected,
@@ -14,7 +16,7 @@ pub const Value = union(enum) {
     string: std.ArrayList(u8),
     int: i64,
     cons: *Cons,
-    builtin: *const fn (Value) RuntimeError!Value,
+    builtin: *const fn (*Evaluator, Value) RuntimeError!Value,
 
     pub fn eql(a: Value, b: Value) bool {
         const TagType = meta.Tag(Value);

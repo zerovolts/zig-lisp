@@ -1,26 +1,31 @@
 const std = @import("std");
 
+const Evaluator = @import("Evaluator.zig");
 const ast = @import("ast.zig");
 const Value = ast.Value;
 const RuntimeError = ast.RuntimeError;
 
-pub fn head(args: Value) RuntimeError!Value {
+pub fn head(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    _ = evaluator;
     if (args != .cons) return RuntimeError.ListExpected;
     if (args.cons.head != .cons) return RuntimeError.ListExpected;
     return args.cons.head.cons.head;
 }
 
-pub fn tail(args: Value) RuntimeError!Value {
+pub fn tail(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    _ = evaluator;
     if (args != .cons) return RuntimeError.ListExpected;
     if (args.cons.head != .cons) return RuntimeError.ListExpected;
     return args.cons.head.cons.tail;
 }
 
-pub fn list(args: Value) RuntimeError!Value {
+pub fn list(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    _ = evaluator;
     return args;
 }
 
-pub fn add(args: Value) RuntimeError!Value {
+pub fn add(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    _ = evaluator;
     var arg = args;
     var total: i64 = 0;
     while (true) {
@@ -32,4 +37,13 @@ pub fn add(args: Value) RuntimeError!Value {
         arg = arg.cons.tail;
     }
     return Value{ .int = total };
+}
+
+pub fn def(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    if (args != .cons) return RuntimeError.ListExpected;
+    if (args.cons.head != .string) return RuntimeError.ListExpected;
+    if (args.cons.tail != .cons) return RuntimeError.ListExpected;
+
+    try evaluator.env.put(args.cons.head.string.items, args.cons.tail.cons.head);
+    return Value.nil;
 }

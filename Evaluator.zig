@@ -23,6 +23,7 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
     try env.put("head", Value{ .builtin = &builtin.head });
     try env.put("tail", Value{ .builtin = &builtin.tail });
     try env.put("list", Value{ .builtin = &builtin.list });
+    try env.put("def", Value{ .builtin = &builtin.def });
 
     return .{
         .alloc = alloc,
@@ -30,7 +31,7 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
     };
 }
 
-pub fn evaluate(self: Evaluator, value: Value) RuntimeError!Value {
+pub fn evaluate(self: *Evaluator, value: Value) RuntimeError!Value {
     switch (value) {
         .string, .int, .nil, .builtin => return value,
         .ident => |ident| return self.env.get(ident.items) orelse Value.nil,
@@ -59,7 +60,7 @@ pub fn evaluate(self: Evaluator, value: Value) RuntimeError!Value {
                 cur = cur.tail.cons;
             }
             if (op != .builtin) return RuntimeError.FunctionExpected;
-            return op.builtin(args);
+            return op.builtin(self, args);
         },
     }
 }
@@ -82,4 +83,18 @@ test "evaluate head/tail" {
 
 test "evaluate add" {
     try testEvaluator("(+ 1 2 3)", Value{ .int = 6 });
+}
+
+test "evaluate def" {
+    // TODO: use testing.allocator
+    var arena = heap.ArenaAllocator.init(heap.page_allocator);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
+    var lexer = Lexer{ .buffer = "(def \"a\" 123)", .alloc = alloc };
+    var parser = Parser{ .lexer = &lexer, .alloc = alloc };
+    var evaluator = try Evaluator.init(alloc);
+
+    _ = try evaluator.evaluate(try parser.next() orelse Value.nil);
+    try testing.expectEqual(evaluator.env.get("a"), Value{ .int = 123 });
 }
