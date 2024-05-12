@@ -3,6 +3,7 @@ const std = @import("std");
 const Evaluator = @import("Evaluator.zig");
 const ast = @import("ast.zig");
 const Value = ast.Value;
+const Cons = ast.Cons;
 const RuntimeError = ast.RuntimeError;
 
 pub fn head(evaluator: *Evaluator, args: Value) RuntimeError!Value {
@@ -15,6 +16,13 @@ pub fn tail(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     _ = evaluator;
     try assertListLen(1, args);
     return args.cons.head.cons.tail;
+}
+
+pub fn cons(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(2, args);
+    const cell = try evaluator.alloc.create(Cons);
+    cell.* = Cons.init(args.cons.head, args.cons.tail.cons.head);
+    return Value{ .cons = cell };
 }
 
 pub fn list(evaluator: *Evaluator, args: Value) RuntimeError!Value {

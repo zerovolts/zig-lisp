@@ -19,9 +19,11 @@ env: std.StringHashMap(Value),
 pub fn init(alloc: mem.Allocator) !Evaluator {
     var env = std.StringHashMap(Value).init(alloc);
 
+    try env.put("nil", Value.nil);
     try env.put("+", Value{ .builtin = &builtin.add });
     try env.put("head", Value{ .builtin = &builtin.head });
     try env.put("tail", Value{ .builtin = &builtin.tail });
+    try env.put("cons", Value{ .builtin = &builtin.cons });
     try env.put("list", Value{ .builtin = &builtin.list });
     try env.put("def", Value{ .builtin = &builtin.def });
 
@@ -72,9 +74,33 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
     const alloc = arena.allocator();
 
     var lexer = Lexer{ .buffer = src, .alloc = alloc };
-    var expr_iter = Parser{ .lexer = &lexer, .alloc = alloc };
+    var parser = Parser{ .lexer = &lexer, .alloc = alloc };
     var evaluator = try Evaluator.init(alloc);
-    try testing.expect(Value.eql(try evaluator.evaluate(try expr_iter.next() orelse Value.nil), expected));
+    try testing.expect(Value.eql(try evaluator.evaluate(try parser.next() orelse Value.nil), expected));
+}
+
+fn testEvaluatorStrings(src1: []const u8, src2: []const u8) !void {
+    // TODO: use testing.allocator
+    var arena = heap.ArenaAllocator.init(heap.page_allocator);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
+    var lexer1 = Lexer{ .buffer = src1, .alloc = alloc };
+    var parser1 = Parser{ .lexer = &lexer1, .alloc = alloc };
+    var evaluator1 = try Evaluator.init(alloc);
+
+    var lexer2 = Lexer{ .buffer = src2, .alloc = alloc };
+    var parser2 = Parser{ .lexer = &lexer2, .alloc = alloc };
+    var evaluator2 = try Evaluator.init(alloc);
+
+    try testing.expect(Value.eql(
+        try evaluator1.evaluate(try parser1.next() orelse Value.nil),
+        try evaluator2.evaluate(try parser2.next() orelse Value.nil),
+    ));
+}
+
+test "evaluate cons" {
+    try testEvaluatorStrings("(list 1 2 3)", "(cons 1 (cons 2 (cons 3 nil)))");
 }
 
 test "evaluate head/tail" {
