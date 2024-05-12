@@ -6,14 +6,12 @@ const Value = ast.Value;
 const Cons = ast.Cons;
 const RuntimeError = ast.RuntimeError;
 
-pub fn head(evaluator: *Evaluator, args: Value) RuntimeError!Value {
-    _ = evaluator;
+pub fn head(_: *Evaluator, args: Value) RuntimeError!Value {
     try assertListLen(1, args);
     return args.cons.head.cons.head;
 }
 
-pub fn tail(evaluator: *Evaluator, args: Value) RuntimeError!Value {
-    _ = evaluator;
+pub fn tail(_: *Evaluator, args: Value) RuntimeError!Value {
     try assertListLen(1, args);
     return args.cons.head.cons.tail;
 }
@@ -25,14 +23,12 @@ pub fn cons(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     return Value{ .cons = cell };
 }
 
-pub fn list(evaluator: *Evaluator, args: Value) RuntimeError!Value {
-    _ = evaluator;
+pub fn list(_: *Evaluator, args: Value) RuntimeError!Value {
     try assertList(args);
     return args;
 }
 
-pub fn add(evaluator: *Evaluator, args: Value) RuntimeError!Value {
-    _ = evaluator;
+pub fn add(_: *Evaluator, args: Value) RuntimeError!Value {
     try assertList(args);
 
     var arg = args;
