@@ -5,8 +5,8 @@ const Evaluator = @import("Evaluator.zig");
 
 pub const RuntimeError = error{
     OutOfMemory,
+    InvalidArguments,
     ListExpected,
-    IntegerExpected,
     FunctionExpected,
 };
 
