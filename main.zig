@@ -18,7 +18,7 @@ pub fn main() !void {
         .alloc = gpa_alloc,
     };
     var parser = Parser{ .lexer = &lexer, .alloc = gpa_alloc };
-    var evaluator = Evaluator{ .alloc = gpa_alloc };
+    var evaluator = try Evaluator.init(gpa_alloc);
     while (try parser.next()) |value| {
         debug.print("{!}\n", .{evaluator.evaluate(value)});
         // debug.print("{}", .{value});

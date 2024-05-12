@@ -14,25 +14,26 @@ const builtin = @import("builtin.zig");
 const Evaluator = @This();
 
 alloc: mem.Allocator,
+env: std.StringHashMap(Value),
+
+pub fn init(alloc: mem.Allocator) !Evaluator {
+    var env = std.StringHashMap(Value).init(alloc);
+
+    try env.put("+", Value{ .builtin = &builtin.add });
+    try env.put("head", Value{ .builtin = &builtin.head });
+    try env.put("tail", Value{ .builtin = &builtin.tail });
+    try env.put("list", Value{ .builtin = &builtin.list });
+
+    return .{
+        .alloc = alloc,
+        .env = env,
+    };
+}
 
 pub fn evaluate(self: Evaluator, value: Value) RuntimeError!Value {
     switch (value) {
         .string, .int, .nil, .builtin => return value,
-        .ident => |ident| {
-            if (mem.eql(u8, ident.items, "+")) {
-                return Value{ .builtin = &builtin.add };
-            }
-            if (mem.eql(u8, ident.items, "head")) {
-                return Value{ .builtin = &builtin.head };
-            }
-            if (mem.eql(u8, ident.items, "tail")) {
-                return Value{ .builtin = &builtin.tail };
-            }
-            if (mem.eql(u8, ident.items, "list")) {
-                return Value{ .builtin = &builtin.list };
-            }
-            return Value.nil;
-        },
+        .ident => |ident| return self.env.get(ident.items) orelse Value.nil,
         .cons => |cons| {
             const op = try self.evaluate(cons.head);
             var args: Value = Value.nil;
@@ -71,7 +72,7 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
 
     var lexer = Lexer{ .buffer = src, .alloc = alloc };
     var expr_iter = Parser{ .lexer = &lexer, .alloc = alloc };
-    var evaluator = Evaluator{ .alloc = alloc };
+    var evaluator = try Evaluator.init(alloc);
     try testing.expect(Value.eql(try evaluator.evaluate(try expr_iter.next() orelse Value.nil), expected));
 }
 

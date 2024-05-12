@@ -1,3 +1,5 @@
+const std = @import("std");
+
 const ast = @import("ast.zig");
 const Value = ast.Value;
 const RuntimeError = ast.RuntimeError;
