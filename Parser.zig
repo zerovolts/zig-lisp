@@ -15,12 +15,7 @@ pub fn next(self: Parser) !?Value {
     if (try self.lexer.next()) |token| {
         switch (token) {
             // Outermost parens don't have any effect on the output.
-            .open_paren => {
-                const res = try self.parseExpr();
-                // Eat the matching closing paren.
-                _ = try self.lexer.next();
-                return res;
-            },
+            .open_paren => return try self.parseExpr(),
             .int, .ident, .str => return try tokenToValue(token),
             else => return error.InvalidToken,
         }
