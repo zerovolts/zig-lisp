@@ -45,9 +45,10 @@ pub fn add(_: *Evaluator, args: Value) RuntimeError!Value {
 
 pub fn def(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     try assertListLen(2, args);
-    if (args.cons.head != .string) return RuntimeError.InvalidArguments;
+    if (args.cons.head != .ident) return RuntimeError.InvalidArguments;
+    const value = try evaluator.evaluate(args.cons.tail.cons.head);
 
-    try evaluator.env.put(args.cons.head.string.items, args.cons.tail.cons.head);
+    try evaluator.env.put(args.cons.head.ident.items, value);
     return Value.nil;
 }
 

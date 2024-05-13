@@ -20,12 +20,14 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
     var env = std.StringHashMap(Value).init(alloc);
 
     try env.put("nil", Value.nil);
+
     try env.put("+", Value{ .builtin = &builtin.add });
     try env.put("head", Value{ .builtin = &builtin.head });
     try env.put("tail", Value{ .builtin = &builtin.tail });
     try env.put("cons", Value{ .builtin = &builtin.cons });
     try env.put("list", Value{ .builtin = &builtin.list });
-    try env.put("def", Value{ .builtin = &builtin.def });
+
+    try env.put("def", Value{ .specialform = &builtin.def });
 
     return .{
         .alloc = alloc,
@@ -35,11 +37,15 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
 
 pub fn evaluate(self: *Evaluator, value: Value) RuntimeError!Value {
     switch (value) {
-        .string, .int, .nil, .builtin => return value,
+        .string, .int, .nil, .builtin, .specialform => return value,
         .ident => |ident| return self.env.get(ident.items) orelse Value.nil,
         .cons => |cons| {
             const op = try self.evaluate(cons.head);
             var args: Value = Value.nil;
+
+            if (op == .specialform) {
+                return op.specialform(self, cons.tail);
+            }
 
             var cur = cons;
             while (true) {
@@ -61,6 +67,7 @@ pub fn evaluate(self: *Evaluator, value: Value) RuntimeError!Value {
                 }
                 cur = cur.tail.cons;
             }
+
             if (op != .builtin) return RuntimeError.FunctionExpected;
             return op.builtin(self, args);
         },
@@ -117,7 +124,7 @@ test "evaluate def" {
     defer arena.deinit();
     const alloc = arena.allocator();
 
-    var lexer = Lexer{ .buffer = "(def \"a\" 123)", .alloc = alloc };
+    var lexer = Lexer{ .buffer = "(def a 123)", .alloc = alloc };
     var parser = Parser{ .lexer = &lexer, .alloc = alloc };
     var evaluator = try Evaluator.init(alloc);
 

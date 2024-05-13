@@ -17,6 +17,8 @@ pub const Value = union(enum) {
     int: i64,
     cons: *Cons,
     builtin: *const fn (*Evaluator, Value) RuntimeError!Value,
+    // A builtin that takes unevaluated arguments.
+    specialform: *const fn (*Evaluator, Value) RuntimeError!Value,
 
     pub fn eql(a: Value, b: Value) bool {
         const TagType = meta.Tag(Value);
@@ -29,6 +31,7 @@ pub const Value = union(enum) {
             .int => return a.int == b.int,
             .cons => return Cons.eql(a.cons, b.cons),
             .builtin => return a.builtin == b.builtin,
+            .specialform => return a.specialform == b.specialform,
         }
     }
 
@@ -41,6 +44,7 @@ pub const Value = union(enum) {
             .string => try writer.print("String[\"{s}\"]", .{self.string.items}),
             .int => try writer.print("Int[{}]", .{self.int}),
             .builtin => try writer.print("<builtin>", .{}),
+            .specialform => try writer.print("<specialform>", .{}),
             .cons => try writer.print("({})", .{self.cons}),
         }
     }
