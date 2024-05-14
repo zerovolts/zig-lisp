@@ -1,4 +1,6 @@
 const std = @import("std");
+const heap = std.heap;
+const testing = std.testing;
 
 const Evaluator = @import("Evaluator.zig");
 const ast = @import("ast.zig");
@@ -41,6 +43,22 @@ pub fn add(_: *Evaluator, args: Value) RuntimeError!Value {
         arg = arg.cons.tail;
     }
     return Value{ .int = total };
+}
+
+pub fn quote(_: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(1, args);
+    return args.cons.head;
+}
+
+test quote {
+    var arena = heap.ArenaAllocator.init(testing.allocator);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
+    var evaluator = try Evaluator.init(alloc);
+    const actual = try quote(&evaluator, try ast.list(alloc, &[_]Value{try ast.list(alloc, &[_]Value{ Value{ .int = 1 }, Value{ .int = 2 }, Value{ .int = 3 } })}));
+    const expected = try ast.list(alloc, &[_]Value{ Value{ .int = 1 }, Value{ .int = 2 }, Value{ .int = 3 } });
+    try testing.expect(Value.eql(actual, expected));
 }
 
 pub fn def(evaluator: *Evaluator, args: Value) RuntimeError!Value {
