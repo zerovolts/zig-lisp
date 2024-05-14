@@ -77,8 +77,7 @@ pub fn evaluate(self: *Evaluator, value: Value) RuntimeError!Value {
 }
 
 fn testEvaluator(src: []const u8, expected: Value) !void {
-    // TODO: use testing.allocator
-    var arena = heap.ArenaAllocator.init(heap.page_allocator);
+    var arena = heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
     const alloc = arena.allocator();
 
@@ -89,8 +88,7 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
 }
 
 fn testEvaluatorStrings(src1: []const u8, src2: []const u8) !void {
-    // TODO: use testing.allocator
-    var arena = heap.ArenaAllocator.init(heap.page_allocator);
+    var arena = heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
     const alloc = arena.allocator();
 

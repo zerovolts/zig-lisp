@@ -56,8 +56,7 @@ const testing = std.testing;
 const heap = std.heap;
 
 fn testParser(src: []const u8, expected: Value) !void {
-    // TODO: use testing.allocator
-    var arena = heap.ArenaAllocator.init(heap.page_allocator);
+    var arena = heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
     const alloc = arena.allocator();
 
