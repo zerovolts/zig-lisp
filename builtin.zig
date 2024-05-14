@@ -45,6 +45,11 @@ pub fn add(_: *Evaluator, args: Value) RuntimeError!Value {
     return Value{ .int = total };
 }
 
+pub fn eval(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(1, args);
+    return evaluator.evaluate(args.cons.head);
+}
+
 pub fn quote(_: *Evaluator, args: Value) RuntimeError!Value {
     try assertListLen(1, args);
     return args.cons.head;

@@ -26,6 +26,7 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
     try env.put("tail", Value{ .builtin = &builtin.tail });
     try env.put("cons", Value{ .builtin = &builtin.cons });
     try env.put("list", Value{ .builtin = &builtin.list });
+    try env.put("eval", Value{ .builtin = &builtin.eval });
 
     try env.put("quote", Value{ .specialform = &builtin.quote });
     try env.put("def", Value{ .specialform = &builtin.def });
