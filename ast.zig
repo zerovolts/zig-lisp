@@ -1,5 +1,8 @@
 const std = @import("std");
 const meta = std.meta;
+const mem = std.mem;
+const heap = std.heap;
+const testing = std.testing;
 
 const Evaluator = @import("Evaluator.zig");
 
@@ -79,3 +82,33 @@ pub const Cons = struct {
         try writer.print("{} . {}", .{ self.head, self.tail });
     }
 };
+
+pub fn list(alloc: mem.Allocator, items: []const Value) !Value {
+    var root: Value = Value.nil;
+    var i = items.len;
+    while (i > 0) {
+        i -= 1;
+        const item = items[i];
+        const cell = try alloc.create(Cons);
+        cell.* = Cons.init(item, root);
+        root = Value{ .cons = cell };
+    }
+    return root;
+}
+
+test list {
+    var arena = heap.ArenaAllocator.init(testing.allocator);
+    defer arena.deinit();
+
+    const actual = try list(
+        arena.allocator(),
+        &[_]Value{ Value{ .int = 1 }, Value{ .int = 2 }, Value{ .int = 3 } },
+    );
+
+    var cell3 = Cons.init(Value{ .int = 3 }, Value.nil);
+    var cell2 = Cons.init(Value{ .int = 2 }, Value{ .cons = &cell3 });
+    var cell1 = Cons.init(Value{ .int = 1 }, Value{ .cons = &cell2 });
+    const expected = Value{ .cons = &cell1 };
+
+    try testing.expect(Value.eql(actual, expected));
+}
