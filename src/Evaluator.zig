@@ -34,6 +34,7 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
     try env.put("quote", Value{ .specialform = &builtin.quote });
     try env.put("apply", Value{ .specialform = &builtin.apply });
     try env.put("def", Value{ .specialform = &builtin.def });
+    try env.put("cond", Value{ .specialform = &builtin.cond });
 
     return .{
         .alloc = alloc,

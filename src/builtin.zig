@@ -86,6 +86,19 @@ pub fn def(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     return Value.nil;
 }
 
+pub fn cond(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    try assertList(args);
+    var cur = args;
+    while (cur == .cons) : (cur = cur.cons.tail) {
+        const case = cur.cons.head;
+        try assertListLen(2, case);
+        if (Value.eql(try evaluator.evaluate(case.cons.head), Value{ .boolean = true })) {
+            return try evaluator.evaluate(case.cons.tail.cons.head);
+        }
+    }
+    return Value.nil;
+}
+
 fn assertList(value: Value) !void {
     if (value != .cons) return RuntimeError.InvalidArguments;
     var cur = value.cons;
