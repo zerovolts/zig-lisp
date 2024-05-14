@@ -50,6 +50,12 @@ pub fn eval(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     return evaluator.evaluate(args.cons.head);
 }
 
+pub fn apply(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(2, args);
+    args.cons.tail = try evaluator.evaluate(args.cons.tail.cons.head);
+    return try evaluator.evaluate(args);
+}
+
 pub fn quote(_: *Evaluator, args: Value) RuntimeError!Value {
     try assertListLen(1, args);
     return args.cons.head;

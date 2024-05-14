@@ -2,3 +2,4 @@
 
 (+ (eval a) 4)
 
+(apply + (list 1 2 3))
