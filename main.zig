@@ -1,6 +1,8 @@
 const std = @import("std");
 const heap = std.heap;
 const debug = std.debug;
+const process = std.process;
+const fs = std.fs;
 
 const Lexer = @import("Lexer.zig");
 const Parser = @import("Parser.zig");
@@ -11,16 +13,22 @@ const Value = ast.Value;
 
 pub fn main() !void {
     var gpa = heap.GeneralPurposeAllocator(.{}){};
-    const gpa_alloc = gpa.allocator();
+    const alloc = gpa.allocator();
+
+    var args = process.args();
+    _ = args.skip();
+    const file_path = args.next().?;
+    // TODO: use std.io.bufferedReader
+    const src = try fs.cwd().readFileAlloc(alloc, file_path, 1024);
 
     var lexer = Lexer{
-        .buffer = "(+ 3 4 5)",
-        .alloc = gpa_alloc,
+        .buffer = src,
+        .alloc = alloc,
     };
-    var parser = Parser{ .lexer = &lexer, .alloc = gpa_alloc };
-    var evaluator = try Evaluator.init(gpa_alloc);
+    var parser = Parser{ .lexer = &lexer, .alloc = alloc };
+    var evaluator = try Evaluator.init(alloc);
+
     while (try parser.next()) |value| {
         debug.print("{!}\n", .{evaluator.evaluate(value)});
-        // debug.print("{}", .{value});
     }
 }
