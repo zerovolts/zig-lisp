@@ -20,6 +20,8 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
     var env = std.StringHashMap(Value).init(alloc);
 
     try env.put("nil", Value.nil);
+    try env.put("true", Value{ .boolean = true });
+    try env.put("false", Value{ .boolean = false });
 
     try env.put("+", Value{ .builtin = &builtin.add });
     try env.put("head", Value{ .builtin = &builtin.head });
@@ -27,6 +29,7 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
     try env.put("cons", Value{ .builtin = &builtin.cons });
     try env.put("list", Value{ .builtin = &builtin.list });
     try env.put("eval", Value{ .builtin = &builtin.eval });
+    try env.put("eq?", Value{ .builtin = &builtin.eq_pred });
 
     try env.put("quote", Value{ .specialform = &builtin.quote });
     try env.put("apply", Value{ .specialform = &builtin.apply });
@@ -40,7 +43,7 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
 
 pub fn evaluate(self: *Evaluator, value: Value) RuntimeError!Value {
     switch (value) {
-        .string, .int, .nil, .builtin, .specialform => return value,
+        .boolean, .string, .int, .nil, .builtin, .specialform => return value,
         .ident => |ident| return self.env.get(ident.items) orelse Value.nil,
         .cons => |cons| {
             const op = try self.evaluate(cons.head);

@@ -50,6 +50,11 @@ pub fn eval(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     return evaluator.evaluate(args.cons.head);
 }
 
+pub fn eq_pred(_: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(2, args);
+    return Value{ .boolean = Value.eql(args.cons.head, args.cons.tail.cons.head) };
+}
+
 pub fn apply(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     try assertListLen(2, args);
     args.cons.tail = try evaluator.evaluate(args.cons.tail.cons.head);

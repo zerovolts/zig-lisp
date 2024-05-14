@@ -2,4 +2,4 @@
 
 (+ (eval a) 4)
 
-(apply + (list 1 2 3))
+(eq? 6 (apply + (list 1 2 3)))

@@ -15,6 +15,7 @@ pub const RuntimeError = error{
 
 pub const Value = union(enum) {
     nil,
+    boolean: bool,
     ident: std.ArrayList(u8),
     string: std.ArrayList(u8),
     int: i64,
@@ -29,6 +30,7 @@ pub const Value = union(enum) {
 
         switch (a) {
             .nil => return true,
+            .boolean => return a.boolean == b.boolean,
             .ident => return meta.eql(a.ident.items, b.ident.items),
             .string => return meta.eql(a.string.items, b.string.items),
             .int => return a.int == b.int,
@@ -43,6 +45,7 @@ pub const Value = union(enum) {
         _ = options;
         switch (self) {
             .nil => try writer.print("Nil", .{}),
+            .boolean => try writer.print("Boolean[{}]", .{self.boolean}),
             .ident => try writer.print("Ident[{s}]", .{self.ident.items}),
             .string => try writer.print("String[\"{s}\"]", .{self.string.items}),
             .int => try writer.print("Int[{}]", .{self.int}),
