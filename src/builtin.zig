@@ -85,6 +85,34 @@ pub fn eq_pred(_: *Evaluator, args: Value) RuntimeError!Value {
     return Value{ .boolean = Value.eql(args.cons.head, args.cons.tail.cons.head) };
 }
 
+pub fn gt(_: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(2, args);
+    if (args.cons.head != .int) return RuntimeError.InvalidArguments;
+    if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
+    return Value{ .boolean = args.cons.head.int > args.cons.tail.cons.head.int };
+}
+
+pub fn lt(_: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(2, args);
+    if (args.cons.head != .int) return RuntimeError.InvalidArguments;
+    if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
+    return Value{ .boolean = args.cons.head.int < args.cons.tail.cons.head.int };
+}
+
+pub fn gte(_: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(2, args);
+    if (args.cons.head != .int) return RuntimeError.InvalidArguments;
+    if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
+    return Value{ .boolean = args.cons.head.int >= args.cons.tail.cons.head.int };
+}
+
+pub fn lte(_: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(2, args);
+    if (args.cons.head != .int) return RuntimeError.InvalidArguments;
+    if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
+    return Value{ .boolean = args.cons.head.int <= args.cons.tail.cons.head.int };
+}
+
 pub fn apply(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     try assertListLen(2, args);
     args.cons.tail = try evaluator.evaluate(args.cons.tail.cons.head);
