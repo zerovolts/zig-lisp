@@ -24,6 +24,9 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
     try env.put("false", Value{ .boolean = false });
 
     try env.put("+", Value{ .builtin = &builtin.add });
+    try env.put("*", Value{ .builtin = &builtin.mul });
+    try env.put("-", Value{ .builtin = &builtin.sub });
+    try env.put("/", Value{ .builtin = &builtin.div });
     try env.put("head", Value{ .builtin = &builtin.head });
     try env.put("tail", Value{ .builtin = &builtin.tail });
     try env.put("cons", Value{ .builtin = &builtin.cons });

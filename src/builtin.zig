@@ -45,6 +45,36 @@ pub fn add(_: *Evaluator, args: Value) RuntimeError!Value {
     return Value{ .int = total };
 }
 
+pub fn mul(_: *Evaluator, args: Value) RuntimeError!Value {
+    try assertList(args);
+
+    var arg = args;
+    var total: i64 = 0;
+    while (true) {
+        if (arg == .nil) break;
+        if (arg.cons.head != .int) return RuntimeError.InvalidArguments;
+
+        total *= arg.cons.head.int;
+        arg = arg.cons.tail;
+    }
+    return Value{ .int = total };
+}
+
+pub fn sub(_: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(2, args);
+    if (args.cons.head != .int) return RuntimeError.InvalidArguments;
+    if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
+    return Value{ .int = args.cons.head.int - args.cons.tail.cons.head.int };
+}
+
+pub fn div(_: *Evaluator, args: Value) RuntimeError!Value {
+    try assertListLen(2, args);
+    if (args.cons.head != .int) return RuntimeError.InvalidArguments;
+    if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
+    // TODO: Handle division by zero.
+    return Value{ .int = @divTrunc(args.cons.head.int, args.cons.tail.cons.head.int) };
+}
+
 pub fn eval(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     try assertListLen(1, args);
     return evaluator.evaluate(args.cons.head);
