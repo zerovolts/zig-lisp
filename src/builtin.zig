@@ -9,29 +9,29 @@ const Cons = ast.Cons;
 const RuntimeError = ast.RuntimeError;
 
 pub fn head(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(1, args);
+    try args.assertListLen(1);
     return args.cons.head.cons.head;
 }
 
 pub fn tail(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(1, args);
+    try args.assertListLen(1);
     return args.cons.head.cons.tail;
 }
 
 pub fn cons(evaluator: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     const cell = try evaluator.alloc.create(Cons);
     cell.* = Cons.init(args.cons.head, args.cons.tail.cons.head);
     return Value{ .cons = cell };
 }
 
 pub fn list(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertList(args);
+    try args.assertList();
     return args;
 }
 
 pub fn add(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertList(args);
+    try args.assertList();
 
     var arg = args;
     var total: i64 = 0;
@@ -46,7 +46,7 @@ pub fn add(_: *Evaluator, args: Value) RuntimeError!Value {
 }
 
 pub fn mul(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertList(args);
+    try args.assertList();
 
     var arg = args;
     var total: i64 = 0;
@@ -61,14 +61,14 @@ pub fn mul(_: *Evaluator, args: Value) RuntimeError!Value {
 }
 
 pub fn sub(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     if (args.cons.head != .int) return RuntimeError.InvalidArguments;
     if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
     return Value{ .int = args.cons.head.int - args.cons.tail.cons.head.int };
 }
 
 pub fn div(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     if (args.cons.head != .int) return RuntimeError.InvalidArguments;
     if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
     // TODO: Handle division by zero.
@@ -76,51 +76,51 @@ pub fn div(_: *Evaluator, args: Value) RuntimeError!Value {
 }
 
 pub fn eval(evaluator: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(1, args);
+    try args.assertListLen(1);
     return evaluator.evaluate(args.cons.head);
 }
 
 pub fn eq_pred(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     return Value{ .boolean = Value.eql(args.cons.head, args.cons.tail.cons.head) };
 }
 
 pub fn gt(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     if (args.cons.head != .int) return RuntimeError.InvalidArguments;
     if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
     return Value{ .boolean = args.cons.head.int > args.cons.tail.cons.head.int };
 }
 
 pub fn lt(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     if (args.cons.head != .int) return RuntimeError.InvalidArguments;
     if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
     return Value{ .boolean = args.cons.head.int < args.cons.tail.cons.head.int };
 }
 
 pub fn gte(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     if (args.cons.head != .int) return RuntimeError.InvalidArguments;
     if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
     return Value{ .boolean = args.cons.head.int >= args.cons.tail.cons.head.int };
 }
 
 pub fn lte(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     if (args.cons.head != .int) return RuntimeError.InvalidArguments;
     if (args.cons.tail.cons.head != .int) return RuntimeError.InvalidArguments;
     return Value{ .boolean = args.cons.head.int <= args.cons.tail.cons.head.int };
 }
 
 pub fn apply(evaluator: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     args.cons.tail = try evaluator.evaluate(args.cons.tail.cons.head);
     return try evaluator.evaluate(args);
 }
 
 pub fn quote(_: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(1, args);
+    try args.assertListLen(1);
     return args.cons.head;
 }
 
@@ -136,7 +136,7 @@ test quote {
 }
 
 pub fn def(evaluator: *Evaluator, args: Value) RuntimeError!Value {
-    try assertListLen(2, args);
+    try args.assertListLen(2);
     if (args.cons.head != .ident) return RuntimeError.InvalidArguments;
     const value = try evaluator.evaluate(args.cons.tail.cons.head);
 
@@ -145,34 +145,14 @@ pub fn def(evaluator: *Evaluator, args: Value) RuntimeError!Value {
 }
 
 pub fn cond(evaluator: *Evaluator, args: Value) RuntimeError!Value {
-    try assertList(args);
+    try args.assertList();
     var cur = args;
     while (cur == .cons) : (cur = cur.cons.tail) {
         const case = cur.cons.head;
-        try assertListLen(2, case);
+        try case.assertListLen(2);
         if (Value.eql(try evaluator.evaluate(case.cons.head), Value{ .boolean = true })) {
             return try evaluator.evaluate(case.cons.tail.cons.head);
         }
     }
     return Value.nil;
-}
-
-fn assertList(value: Value) !void {
-    if (value != .cons) return RuntimeError.InvalidArguments;
-    var cur = value.cons;
-    while (cur.tail == .cons) {
-        cur = cur.tail.cons;
-    }
-    if (cur.tail != Value.nil) return RuntimeError.InvalidArguments;
-}
-
-fn assertListLen(n: usize, value: Value) !void {
-    // Verify that the value is a list at all.
-    if (value != .cons) return RuntimeError.InvalidArguments;
-    var cur = value.cons;
-    for (1..n) |_| {
-        if (cur.tail != .cons) return RuntimeError.InvalidArguments;
-        cur = cur.tail.cons;
-    }
-    if (cur.tail != Value.nil) return RuntimeError.InvalidArguments;
 }
