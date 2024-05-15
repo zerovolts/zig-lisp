@@ -9,6 +9,9 @@ const Evaluator = @import("Evaluator.zig");
 pub const RuntimeError = error{
     OutOfMemory,
     InvalidArguments,
+    InvalidList,
+    TooFewListElements,
+    TooManyListElements,
     ListExpected,
     FunctionExpected,
 };
@@ -41,23 +44,31 @@ pub const Value = union(enum) {
     }
 
     pub fn assertList(self: Value) !void {
-        if (self != .cons) return RuntimeError.InvalidArguments;
+        if (self != .cons) return RuntimeError.InvalidList;
         var cur = self.cons;
         while (cur.tail == .cons) {
             cur = cur.tail.cons;
         }
-        if (cur.tail != Value.nil) return RuntimeError.InvalidArguments;
+        if (cur.tail != Value.nil) return RuntimeError.InvalidList;
     }
 
     pub fn assertListLen(self: Value, n: usize) !void {
         // Verify that the value is a list at all.
-        if (self != .cons) return RuntimeError.InvalidArguments;
+        if (self != .cons) return RuntimeError.InvalidList;
         var cur = self.cons;
         for (1..n) |_| {
-            if (cur.tail != .cons) return RuntimeError.InvalidArguments;
+            switch (cur.tail) {
+                .cons => {},
+                .nil => return RuntimeError.TooFewListElements,
+                else => return RuntimeError.InvalidList,
+            }
             cur = cur.tail.cons;
         }
-        if (cur.tail != Value.nil) return RuntimeError.InvalidArguments;
+        switch (cur.tail) {
+            .nil => {},
+            .cons => return RuntimeError.TooManyListElements,
+            else => return RuntimeError.InvalidList,
+        }
     }
 
     pub fn format(self: Value, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) anyerror!void {
