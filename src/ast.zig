@@ -27,9 +27,10 @@ pub const Value = union(enum) {
     // A builtin that takes unevaluated arguments.
     specialform: *const fn (*Evaluator, Value) RuntimeError!Value,
 
+    pub const Tag = meta.Tag(Value);
+
     pub fn eql(a: Value, b: Value) bool {
-        const TagType = meta.Tag(Value);
-        if (@as(TagType, a) != @as(TagType, b)) return false;
+        if (@as(Tag, a) != @as(Tag, b)) return false;
 
         switch (a) {
             .nil => return true,
