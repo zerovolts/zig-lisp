@@ -1,9 +1,11 @@
-(def a (quote (+ 1 2 3)))
+(def vx (fn (v) (head v)))
+(def vy (fn (v) (head (tail v))))
 
-(+ (eval a) 4)
+(def vadd
+     (fn (a b) 
+         (list (+ (vx a) (vx b))
+               (+ (vy a) (vy b)))))
 
-(eq? 6 (apply + (list 1 2 3)))
-
-(cond ((eq? 2 3) 34)
-      ((eq? (eval a) 6) 17)
-      (true 55))
+(def a (list 3 4))
+(def b (list 7 2))
+(vadd a b)

@@ -6,6 +6,7 @@ const Evaluator = @import("Evaluator.zig");
 const ast = @import("ast.zig");
 const Value = ast.Value;
 const Cons = ast.Cons;
+const Function = ast.Function;
 const RuntimeError = ast.RuntimeError;
 
 pub fn head(_: *Evaluator, args: Value) RuntimeError!Value {
@@ -49,7 +50,7 @@ pub fn mul(_: *Evaluator, args: Value) RuntimeError!Value {
     try args.assertList();
 
     var arg = args;
-    var total: i64 = 0;
+    var total: i64 = 1;
     while (true) {
         if (arg == .nil) break;
         if (arg.cons.head != .int) return RuntimeError.InvalidArguments;
@@ -140,7 +141,8 @@ pub fn def(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     if (args.cons.head != .ident) return RuntimeError.InvalidArguments;
     const value = try evaluator.evaluate(args.cons.tail.cons.head);
 
-    try evaluator.env.put(args.cons.head.ident.items, value);
+    // TODO: Should this be global scope?
+    try evaluator.current_scope.put(args.cons.head.ident.items, value);
     return Value.nil;
 }
 
@@ -155,4 +157,16 @@ pub fn cond(evaluator: *Evaluator, args: Value) RuntimeError!Value {
         }
     }
     return Value.nil;
+}
+
+pub fn function(evaluator: *Evaluator, args: Value) RuntimeError!Value {
+    try args.assertListLen(2);
+    const parameters = args.cons.head;
+    // TODO: assert that params is a list of symbols or nil
+    const body = args.cons.tail.cons.head;
+    // TODO: assert that body is a list or value
+
+    const func = try evaluator.alloc.create(Function);
+    func.* = .{ .parameters = parameters, .body = body, .parent_scope = evaluator.current_scope };
+    return Value{ .function = func };
 }

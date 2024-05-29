@@ -18,7 +18,6 @@ pub fn main() !void {
     var args = process.args();
     _ = args.skip();
     const file_path = args.next().?;
-    std.debug.print("path: {s}\n", .{file_path});
     // TODO: use std.io.bufferedReader
     const src = try fs.cwd().readFileAlloc(alloc, file_path, 1024);
 
@@ -30,6 +29,7 @@ pub fn main() !void {
     var evaluator = try Evaluator.init(alloc);
 
     while (try parser.next()) |value| {
-        debug.print("{!}\n", .{evaluator.evaluate(value)});
+        debug.print("> {}\n", .{value});
+        debug.print("{!}\n\n", .{evaluator.evaluate(value)});
     }
 }

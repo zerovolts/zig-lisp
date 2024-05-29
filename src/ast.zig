@@ -5,6 +5,7 @@ const heap = std.heap;
 const testing = std.testing;
 
 const Evaluator = @import("Evaluator.zig");
+const Scope = Evaluator.Scope;
 
 pub const RuntimeError = error{
     OutOfMemory,
@@ -14,6 +15,7 @@ pub const RuntimeError = error{
     TooManyListElements,
     ListExpected,
     FunctionExpected,
+    SymbolNotFound,
 };
 
 pub const Value = union(enum) {
@@ -26,6 +28,7 @@ pub const Value = union(enum) {
     builtin: *const fn (*Evaluator, Value) RuntimeError!Value,
     // A builtin that takes unevaluated arguments.
     specialform: *const fn (*Evaluator, Value) RuntimeError!Value,
+    function: *Function,
 
     pub const Tag = meta.Tag(Value);
 
@@ -41,6 +44,7 @@ pub const Value = union(enum) {
             .cons => return Cons.eql(a.cons, b.cons),
             .builtin => return a.builtin == b.builtin,
             .specialform => return a.specialform == b.specialform,
+            .function => return a.function == b.function,
         }
     }
 
@@ -83,6 +87,7 @@ pub const Value = union(enum) {
             .int => try writer.print("Int[{}]", .{self.int}),
             .builtin => try writer.print("<builtin>", .{}),
             .specialform => try writer.print("<specialform>", .{}),
+            .function => try writer.print("<function>", .{}),
             .cons => try writer.print("({})", .{self.cons}),
         }
     }
@@ -116,6 +121,12 @@ pub const Cons = struct {
         _ = options;
         try writer.print("{} . {}", .{ self.head, self.tail });
     }
+};
+
+pub const Function = struct {
+    parameters: Value,
+    body: Value,
+    parent_scope: *Scope,
 };
 
 pub fn list(alloc: mem.Allocator, items: []const Value) !Value {

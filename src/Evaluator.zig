@@ -14,53 +14,56 @@ const builtin = @import("builtin.zig");
 const Evaluator = @This();
 
 alloc: mem.Allocator,
-env: std.StringHashMap(Value),
+current_scope: *Scope,
 
 pub fn init(alloc: mem.Allocator) !Evaluator {
-    var env = std.StringHashMap(Value).init(alloc);
+    var global_scope = try alloc.create(Scope);
+    global_scope.* = try Scope.init(alloc, null);
 
-    try env.put("nil", Value.nil);
-    try env.put("true", Value{ .boolean = true });
-    try env.put("false", Value{ .boolean = false });
+    try global_scope.put("nil", Value.nil);
+    try global_scope.put("true", Value{ .boolean = true });
+    try global_scope.put("false", Value{ .boolean = false });
 
-    try env.put("+", Value{ .builtin = &builtin.add });
-    try env.put("*", Value{ .builtin = &builtin.mul });
-    try env.put("-", Value{ .builtin = &builtin.sub });
-    try env.put("/", Value{ .builtin = &builtin.div });
-    try env.put(">", Value{ .builtin = &builtin.gt });
-    try env.put("<", Value{ .builtin = &builtin.lt });
-    try env.put(">=", Value{ .builtin = &builtin.gte });
-    try env.put("<=", Value{ .builtin = &builtin.lte });
-    try env.put("head", Value{ .builtin = &builtin.head });
-    try env.put("tail", Value{ .builtin = &builtin.tail });
-    try env.put("cons", Value{ .builtin = &builtin.cons });
-    try env.put("list", Value{ .builtin = &builtin.list });
-    try env.put("eval", Value{ .builtin = &builtin.eval });
-    try env.put("eq?", Value{ .builtin = &builtin.eq_pred });
+    try global_scope.put("+", Value{ .builtin = &builtin.add });
+    try global_scope.put("*", Value{ .builtin = &builtin.mul });
+    try global_scope.put("-", Value{ .builtin = &builtin.sub });
+    try global_scope.put("/", Value{ .builtin = &builtin.div });
+    try global_scope.put(">", Value{ .builtin = &builtin.gt });
+    try global_scope.put("<", Value{ .builtin = &builtin.lt });
+    try global_scope.put(">=", Value{ .builtin = &builtin.gte });
+    try global_scope.put("<=", Value{ .builtin = &builtin.lte });
+    try global_scope.put("head", Value{ .builtin = &builtin.head });
+    try global_scope.put("tail", Value{ .builtin = &builtin.tail });
+    try global_scope.put("cons", Value{ .builtin = &builtin.cons });
+    try global_scope.put("list", Value{ .builtin = &builtin.list });
+    try global_scope.put("eval", Value{ .builtin = &builtin.eval });
+    try global_scope.put("eq?", Value{ .builtin = &builtin.eq_pred });
 
-    try env.put("quote", Value{ .specialform = &builtin.quote });
-    try env.put("apply", Value{ .specialform = &builtin.apply });
-    try env.put("def", Value{ .specialform = &builtin.def });
-    try env.put("cond", Value{ .specialform = &builtin.cond });
+    try global_scope.put("quote", Value{ .specialform = &builtin.quote });
+    try global_scope.put("apply", Value{ .specialform = &builtin.apply });
+    try global_scope.put("def", Value{ .specialform = &builtin.def });
+    try global_scope.put("cond", Value{ .specialform = &builtin.cond });
+    try global_scope.put("fn", Value{ .specialform = &builtin.function });
 
     return .{
         .alloc = alloc,
-        .env = env,
+        .current_scope = global_scope,
     };
 }
 
 pub fn evaluate(self: *Evaluator, value: Value) RuntimeError!Value {
     switch (value) {
-        .boolean, .string, .int, .nil, .builtin, .specialform => return value,
-        .ident => |ident| return self.env.get(ident.items) orelse Value.nil,
+        .boolean, .string, .int, .nil, .builtin, .specialform, .function => return value,
+        .ident => |ident| return self.current_scope.get(ident.items) orelse Value.nil,
         .cons => |cons| {
             const op = try self.evaluate(cons.head);
-            var args: Value = Value.nil;
 
             if (op == .specialform) {
                 return op.specialform(self, cons.tail);
             }
 
+            // Evaluate function arguments into a new cons list
+            var args: Value = Value.nil;
             var cur = cons;
             while (true) {
                 if (cur.tail == .nil) break;
@@ -82,11 +85,74 @@ pub fn evaluate(self: *Evaluator, value: Value) RuntimeError!Value {
                 cur = cur.tail.cons;
             }
 
-            if (op != .builtin) return RuntimeError.FunctionExpected;
-            return op.builtin(self, args);
+            if (op == .function) {
+                const return_scope = self.current_scope;
+                const scope = try self.alloc.create(Scope);
+                scope.* = try Scope.init(self.alloc, op.function.parent_scope);
+                self.current_scope = scope;
+                // TODO: Destroy old scope (if not part of a closure)
+                defer self.current_scope = return_scope;
+
+                var curParam = op.function.parameters;
+                var curArg = args;
+                while (true) {
+                    if (curParam != .cons and curArg != .cons) {
+                        // End of args
+                        break;
+                    } else if (curParam != .cons or curArg != .cons) {
+                        // Wrong number of args
+                        return RuntimeError.InvalidArguments;
+                    } else {
+                        if (curParam.cons.head != .ident) return RuntimeError.InvalidArguments;
+                        try self.current_scope.put(curParam.cons.head.ident.items, curArg.cons.head);
+                    }
+                    curParam = curParam.cons.tail;
+                    curArg = curArg.cons.tail;
+                }
+
+                return self.evaluate(op.function.body);
+            }
+
+            if (op == .builtin) return op.builtin(self, args);
+
+            return RuntimeError.FunctionExpected;
         },
     }
 }
+
+pub const Scope = struct {
+    symbol_table: std.StringHashMap(Value),
+    parent: ?*Scope,
+
+    pub fn init(alloc: std.mem.Allocator, parent: ?*Scope) !Scope {
+        return Scope{ .symbol_table = std.StringHashMap(Value).init(alloc), .parent = parent };
+    }
+
+    pub fn get(self: *Scope, key: []const u8) ?Value {
+        var cur = self;
+        while (true) {
+            const res = cur.symbol_table.get(key);
+            if (res != null) return res;
+            if (cur.parent == null) return null;
+            cur = cur.parent.?;
+        }
+    }
+
+    pub fn put(self: *Scope, key: []const u8, value: Value) !void {
+        try self.symbol_table.put(key, value);
+    }
+
+    pub fn format(self: Scope, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) anyerror!void {
+        _ = fmt;
+        _ = options;
+        var iter = self.symbol_table.iterator();
+        while (iter.next()) |entry| {
+            try writer.print("- {s}: {}\n", .{ entry.key_ptr.*, entry.value_ptr });
+        }
+        // Uncomment for recursive printing
+        // try writer.print("\n{?}", .{self.parent});
+    }
+};
 
 fn testEvaluator(src: []const u8, expected: Value) !void {
     var arena = heap.ArenaAllocator.init(testing.allocator);
@@ -141,5 +207,5 @@ test "evaluate def" {
     var evaluator = try Evaluator.init(alloc);
 
     _ = try evaluator.evaluate(try parser.next() orelse Value.nil);
-    try testing.expectEqual(evaluator.env.get("a"), Value{ .int = 123 });
+    try testing.expectEqual(evaluator.current_scope.get("a"), Value{ .int = 123 });
 }
