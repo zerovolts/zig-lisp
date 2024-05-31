@@ -76,6 +76,36 @@ pub const Value = union(enum) {
         }
     }
 
+    // Assumes `self` is a valid list with atleast length i + 1.
+    pub fn getListElementUnsafe(self: Value, i: usize) Value {
+        var cur = self;
+        if (i == 0) return cur.cons.head;
+        for (0..i) |_| cur = cur.cons.tail;
+        return cur.cons.head;
+    }
+
+    pub fn expectListElement(self: Value, i: usize, tag: ?Tag) !Value {
+        var cur = self;
+        for (0..i) |_| {
+            switch (cur) {
+                .cons => cur = cur.cons.tail,
+                .nil => return RuntimeError.TooFewListElements,
+                else => return RuntimeError.InvalidList,
+            }
+        }
+        switch (cur) {
+            .cons => {
+                const value = cur.cons.head;
+                if (tag == null) return value;
+                // TODO: tag should already be guaranteed to exist here.
+                if (value != tag.?) return RuntimeError.InvalidArguments;
+                return value;
+            },
+            .nil => return RuntimeError.TooFewListElements,
+            else => return RuntimeError.InvalidList,
+        }
+    }
+
     pub fn format(self: Value, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) anyerror!void {
         _ = fmt;
         _ = options;
