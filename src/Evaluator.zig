@@ -10,15 +10,15 @@ const Value = ast.Value;
 const Cons = ast.Cons;
 const RuntimeError = ast.RuntimeError;
 const builtin = @import("builtin.zig");
+const Memory = @import("Memory.zig");
 
 const Evaluator = @This();
 
-alloc: mem.Allocator,
+memory: *Memory,
 current_scope: *Scope,
 
-pub fn init(alloc: mem.Allocator) !Evaluator {
-    var global_scope = try alloc.create(Scope);
-    global_scope.* = try Scope.init(alloc, null);
+pub fn init(memory: *Memory) !Evaluator {
+    var global_scope = try memory.createScope(null);
 
     try global_scope.put("nil", Value.nil);
     try global_scope.put("true", Value{ .boolean = true });
@@ -46,7 +46,7 @@ pub fn init(alloc: mem.Allocator) !Evaluator {
     try global_scope.put("fn", Value{ .specialform = &builtin.function });
 
     return .{
-        .alloc = alloc,
+        .memory = memory,
         .current_scope = global_scope,
     };
 }
@@ -70,8 +70,7 @@ pub fn evaluate(self: *Evaluator, value: Value) RuntimeError!Value {
                 if (cur.tail != .cons) return RuntimeError.ListExpected;
 
                 const res = try self.evaluate(cur.tail.cons.head);
-                const cell = try self.alloc.create(Cons);
-                cell.* = Cons.init(res, Value.nil);
+                const cell = try self.memory.createCons(res, Value.nil);
                 switch (args) {
                     .nil => {
                         args = Value{ .cons = cell };
@@ -87,8 +86,7 @@ pub fn evaluate(self: *Evaluator, value: Value) RuntimeError!Value {
 
             if (op == .function) {
                 const return_scope = self.current_scope;
-                const scope = try self.alloc.create(Scope);
-                scope.* = try Scope.init(self.alloc, op.function.parent_scope);
+                const scope = try self.memory.createScope(op.function.parent_scope);
                 self.current_scope = scope;
                 // TODO: Destroy old scope (if not part of a closure)
                 defer self.current_scope = return_scope;
@@ -159,9 +157,10 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
     defer arena.deinit();
     const alloc = arena.allocator();
 
+    var memory = Memory.init(alloc);
     var lexer = Lexer{ .buffer = src, .alloc = alloc };
     var parser = Parser{ .lexer = &lexer, .alloc = alloc };
-    var evaluator = try Evaluator.init(alloc);
+    var evaluator = try Evaluator.init(&memory);
     try testing.expect(Value.eql(try evaluator.evaluate(try parser.next() orelse Value.nil), expected));
 }
 
@@ -170,13 +169,15 @@ fn testEvaluatorStrings(src1: []const u8, src2: []const u8) !void {
     defer arena.deinit();
     const alloc = arena.allocator();
 
+    var memory1 = Memory.init(alloc);
     var lexer1 = Lexer{ .buffer = src1, .alloc = alloc };
     var parser1 = Parser{ .lexer = &lexer1, .alloc = alloc };
-    var evaluator1 = try Evaluator.init(alloc);
+    var evaluator1 = try Evaluator.init(&memory1);
 
+    var memory2 = Memory.init(alloc);
     var lexer2 = Lexer{ .buffer = src2, .alloc = alloc };
     var parser2 = Parser{ .lexer = &lexer2, .alloc = alloc };
-    var evaluator2 = try Evaluator.init(alloc);
+    var evaluator2 = try Evaluator.init(&memory2);
 
     try testing.expect(Value.eql(
         try evaluator1.evaluate(try parser1.next() orelse Value.nil),
@@ -202,9 +203,10 @@ test "evaluate def" {
     defer arena.deinit();
     const alloc = arena.allocator();
 
+    var memory = Memory.init(alloc);
     var lexer = Lexer{ .buffer = "(def a 123)", .alloc = alloc };
     var parser = Parser{ .lexer = &lexer, .alloc = alloc };
-    var evaluator = try Evaluator.init(alloc);
+    var evaluator = try Evaluator.init(&memory);
 
     _ = try evaluator.evaluate(try parser.next() orelse Value.nil);
     try testing.expectEqual(evaluator.current_scope.get("a"), Value{ .int = 123 });

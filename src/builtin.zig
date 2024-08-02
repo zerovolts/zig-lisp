@@ -3,6 +3,7 @@ const heap = std.heap;
 const testing = std.testing;
 
 const Evaluator = @import("Evaluator.zig");
+const Memory = @import("Memory.zig");
 const ast = @import("ast.zig");
 const Value = ast.Value;
 const Cons = ast.Cons;
@@ -23,8 +24,7 @@ pub fn tail(_: *Evaluator, args: Value) RuntimeError!Value {
 pub fn cons(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     const arg0 = try args.expectListElement(0, null);
     const arg1 = try args.expectListElement(1, null);
-    const cell = try evaluator.alloc.create(Cons);
-    cell.* = Cons.init(arg0, arg1);
+    const cell = try evaluator.memory.createCons(arg0, arg1);
     return Value{ .cons = cell };
 }
 
@@ -120,7 +120,8 @@ test quote {
     defer arena.deinit();
     const alloc = arena.allocator();
 
-    var evaluator = try Evaluator.init(alloc);
+    var memory = Memory.init(alloc);
+    var evaluator = try Evaluator.init(&memory);
     const actual = try quote(&evaluator, try ast.list(alloc, &[_]Value{try ast.list(alloc, &[_]Value{ Value{ .int = 1 }, Value{ .int = 2 }, Value{ .int = 3 } })}));
     const expected = try ast.list(alloc, &[_]Value{ Value{ .int = 1 }, Value{ .int = 2 }, Value{ .int = 3 } });
     try testing.expect(Value.eql(actual, expected));
@@ -155,7 +156,6 @@ pub fn function(evaluator: *Evaluator, args: Value) RuntimeError!Value {
     // TODO: assert that body is a well-formed list or primitive value
     const body = args.cons.tail.cons.head;
 
-    const func = try evaluator.alloc.create(Function);
-    func.* = .{ .parameters = parameters, .body = body, .parent_scope = evaluator.current_scope };
+    const func = try evaluator.memory.createFunction(parameters, body, evaluator.current_scope);
     return Value{ .function = func };
 }
