@@ -2,6 +2,7 @@ const std = @import("std");
 const mem = std.mem;
 
 const Lexer = @import("Lexer.zig");
+const Memory = @import("Memory.zig");
 const ast = @import("ast.zig");
 const Value = ast.Value;
 const Cons = ast.Cons;
@@ -9,7 +10,7 @@ const Cons = ast.Cons;
 const Parser = @This();
 
 lexer: *Lexer,
-alloc: mem.Allocator,
+memory: *Memory,
 
 pub fn next(self: Parser) !?Value {
     if (try self.lexer.next()) |token| {
@@ -28,14 +29,12 @@ fn parseExpr(self: Parser) !Value {
     while (try self.lexer.next()) |token| {
         switch (token) {
             .open_paren => {
-                const cell = try self.alloc.create(Cons);
-                cell.* = Cons.init(try self.parseExpr(), try self.parseExpr());
+                const cell = try self.memory.createCons(try self.parseExpr(), try self.parseExpr());
                 return Value{ .cons = cell };
             },
             .close_paren => return Value.nil,
             .int, .ident, .str => {
-                const cell = try self.alloc.create(Cons);
-                cell.* = Cons.init(try tokenToValue(token), try self.parseExpr());
+                const cell = try self.memory.createCons(try tokenToValue(token), try self.parseExpr());
                 return Value{ .cons = cell };
             },
         }
@@ -60,8 +59,9 @@ fn testParser(src: []const u8, expected: Value) !void {
     defer arena.deinit();
     const alloc = arena.allocator();
 
+    var memory = Memory.init(alloc);
     var lexer = Lexer{ .buffer = src, .alloc = alloc };
-    var parser = Parser{ .lexer = &lexer, .alloc = alloc };
+    var parser = Parser{ .lexer = &lexer, .memory = &memory };
     try testing.expect(Value.eql(try parser.next() orelse Value.nil, expected));
 }
 

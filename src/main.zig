@@ -27,7 +27,7 @@ pub fn main() !void {
         .buffer = src,
         .alloc = alloc,
     };
-    var parser = Parser{ .lexer = &lexer, .alloc = alloc };
+    var parser = Parser{ .lexer = &lexer, .memory = &memory };
     var evaluator = try Evaluator.init(&memory);
 
     while (try parser.next()) |value| {

@@ -159,7 +159,7 @@ fn testEvaluator(src: []const u8, expected: Value) !void {
 
     var memory = Memory.init(alloc);
     var lexer = Lexer{ .buffer = src, .alloc = alloc };
-    var parser = Parser{ .lexer = &lexer, .alloc = alloc };
+    var parser = Parser{ .lexer = &lexer, .memory = &memory };
     var evaluator = try Evaluator.init(&memory);
     try testing.expect(Value.eql(try evaluator.evaluate(try parser.next() orelse Value.nil), expected));
 }
@@ -171,12 +171,12 @@ fn testEvaluatorStrings(src1: []const u8, src2: []const u8) !void {
 
     var memory1 = Memory.init(alloc);
     var lexer1 = Lexer{ .buffer = src1, .alloc = alloc };
-    var parser1 = Parser{ .lexer = &lexer1, .alloc = alloc };
+    var parser1 = Parser{ .lexer = &lexer1, .memory = &memory1 };
     var evaluator1 = try Evaluator.init(&memory1);
 
     var memory2 = Memory.init(alloc);
     var lexer2 = Lexer{ .buffer = src2, .alloc = alloc };
-    var parser2 = Parser{ .lexer = &lexer2, .alloc = alloc };
+    var parser2 = Parser{ .lexer = &lexer2, .memory = &memory2 };
     var evaluator2 = try Evaluator.init(&memory2);
 
     try testing.expect(Value.eql(
@@ -205,7 +205,7 @@ test "evaluate def" {
 
     var memory = Memory.init(alloc);
     var lexer = Lexer{ .buffer = "(def a 123)", .alloc = alloc };
-    var parser = Parser{ .lexer = &lexer, .alloc = alloc };
+    var parser = Parser{ .lexer = &lexer, .memory = &memory };
     var evaluator = try Evaluator.init(&memory);
 
     _ = try evaluator.evaluate(try parser.next() orelse Value.nil);
