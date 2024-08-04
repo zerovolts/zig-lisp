@@ -19,4 +19,5 @@ zig test src/Evaluator.zig
 - [x] `Value` methods to make traversing `Cons` cells less error-prone
 - [ ] garbage collection
 - [ ] user-defined macros
+- [ ] continuations
 - [ ] error messages
